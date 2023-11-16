@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriFsV2Lib.Tests", "CriFsV2
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriFsV2Lib.Benchmarks", "CriFsV2Lib.Benchmarks\CriFsV2Lib.Benchmarks.csproj", "{8B8CDAAF-4546-4125-BE63-24BF6B03CF0A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRIPack", "CriFsLib.GUI\CRIPack.csproj", "{2E9D5D59-5715-4352-8F64-0B7963F2C243}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CPKPack", "CriFsLib.GUI\CPKPack.csproj", "{2E9D5D59-5715-4352-8F64-0B7963F2C243}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriFsV2Lib.Definitions", "CriFsV2Lib.Definitions\CriFsV2Lib.Definitions.csproj", "{0A5A0E4F-DCD8-4AC6-B294-59FCCD1860B2}"
 EndProject
