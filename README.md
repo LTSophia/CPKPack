@@ -1,10 +1,11 @@
-CriFsV2Lib Reloaded
+CPKPack 
 ===========
+![Logo](./docs/images/cpkpack.png)
 
-A minimal library to extract contents from CRI Middleware's CPK archive format. (a.k.a. CRI Filemajik library)
+A minimal GUI program to extract contents from CRI Middleware's CPK archive format. (a.k.a. CRI Filemajik library)
 
 Goals:  
-- Clean codebase.  
+- Clean codebase.  (Oops... -ltsophia)
 - Minimalist.  (does minimal amount of work)
 - No dependencies.  (entirely self contained in ~25KB library)
 - High performance.  (really, really fast)
@@ -24,109 +25,25 @@ Feature Support
 
 ![WPF Application](./docs/images/gui.png)
 
-A basic standalone WPF application is also available for testing.
+The provided GUI application is now more functional and user-friendly.
 
 Usage
 =====
 
-High Level API is available in the `CriFsLib` class.  
+## Normal Usage
+Either open up a CPK archive file with this application or drag a CPK archive file onto this program while it is running.
 
-## Get Files in CPK  
-```csharp
-using var fileStream = new FileStream(Assets.SampleCpkFile, FileMode.Open);
-using var reader = CriFsLib.Instance.CreateCpkReader(fileStream, true);
-var files = reader.GetFiles();
+Both methods will allow you to browse the files in the CPK archive as well as extract them.
+
+## CLI Usage
+If you would prefer to run this program from the command line, you can call the executable with both a input and output path.
+
+This will have the program run without the gui, and fully unpack the file located at the input path, storing everything at the
+output path.
+#### Example CLI usage:
+```bat
+CPKPack.exe path/to/file.CPK path/to/output/folder/
 ```
-
-## Extract Individual File  
-```csharp
-using var file = reader.ExtractFile(files[0])
-// Access via file.Span
-```
-
-You can pass in optional decryption function.  
-Lower level APIs will require partial understanding of the formats, have a look at the tests project.  
-
-## Extract Files in Batch
-
-The batch extractor can be used to efficiently extract multiple files in a multithreaded fashion.  
-⚠️ Uses heavy array pooling, risk of address space starvation in 32-bit processes!!  
-
-```csharp
-
-using var extractor = CriFsLib.Instance.CreateBatchExtractor<ItemModel>(CpkPath);
-for (int x = 0; x < files.Length; x++)
-    extractor.QueueItem(new ItemModel(Path.Combine(folder, files[x].FullPath), files[x]));
-
-extractor.WaitForCompletion();
-```
-
-## Clearing Memory
-
-❗ The library makes use of array pooling to speed up operations.  
-
-Once you are done with using the library, consider clearing the array pool:  
-```csharp
-ArrayRental.Reset();
-```
-
-This will clear the pool, allowing the memory to be freed.  
-
-📝 You might notice a large Private Working Set (RAM Usage) in Task Manager persisting for a while when running with GC Regions (.NET 7).  
-*This is as intended and is not something you should be worried about*.  
-
-This memory of the UOH (LOH and POH) will be fully decommitted when the GC sees fit, (usually after next Gen 2 GC or when a low RAM notification is received from the OS).  
-
-If this however still bothers you, or you know you're not going to use the library again, request a GC with pressure:  
-```csharp
-GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-GC.AddMemoryPressure(int.MaxValue);
-GC.Collect(); // will clean up LOH
-GC.RemoveMemoryPressure(int.MaxValue);
-// Memory will be fully decommitted shortly after this line (next GC of any kind)
-```
-
-Performance
-===========
-
-Some parts of this library are heavily tuned for performance. 
-
-Decompression (CRILayla, 165KiB Model file):  
-```
-BenchmarkDotNet=v0.13.2, OS=Windows 10 (10.0.19044.2130/21H2/November2021Update)
-Intel Core i7-4790K CPU 4.00GHz (Haswell), 1 CPU, 8 logical and 4 physical cores
-.NET SDK=7.0.100
-  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
-
-|   Method |     Mean |    Error |  StdDev | Ratio |    Gen0 |    Gen1 |    Gen2 | Allocated | Alloc Ratio |
-|--------- |---------:|---------:|--------:|------:|--------:|--------:|--------:|----------:|------------:|
-|   CriPak | 983.3 us | 11.02 us | 9.77 us |  1.00 | 50.7813 | 50.7813 | 50.7813 | 166.01 KB |        1.00 |
-| CriFsLib | 355.4 us |  3.20 us | 2.83 us |  0.36 | 52.2461 | 52.2461 | 52.2461 | 165.71 KB |        1.00 |
-```
-
-Header decryption/descramble [2MB Header]:  
-```
-|           Method |        Mean |    Error |   StdDev | Ratio |     Gen0 |     Gen1 |     Gen2 | Allocated | Alloc Ratio |
-|----------------- |------------:|---------:|---------:|------:|---------:|---------:|---------:|----------:|------------:|
-|           CriPak | 1,851.23 us | 6.343 us | 5.623 us |  1.00 | 294.9219 | 294.9219 | 294.9219 | 2097269 B |        1.00 |
-|         CriFsLib |   529.34 us | 3.844 us | 3.407 us |  0.29 | 331.0547 | 331.0547 | 331.0547 | 2097280 B |        1.00 |
-| CriFsLib_InPlace |    87.06 us | 1.241 us | 1.161 us |  0.05 |        - |        - |        - |         - |        0.00 |
-```
-Is approximately 15 times faster than the original implementation in retail CRI games.
-
-
-Parsing a 30GB encrypted/scrambled CPK with 45000 files:  
-```csharp
-|     Method |     Mean |     Error |    StdDev |     Gen0 |     Gen1 |     Gen2 | Allocated |
-|----------- |---------:|----------:|----------:|---------:|---------:|---------:|----------:|
-| ParseTable | 8.469 ms | 0.1660 ms | 0.3276 ms | 984.3750 | 968.7500 | 546.8750 |   6.44 MB |
-```
-
-[`CriPak` is the reference implementation from [CriPakTools](https://github.com/wmltogether/CriPakTools)].  
-
-In practice, this library is always I/O (/FileSystem) bottlenecked.  
-6 cores of a modern CPU should be sufficient to saturate a modern NVMe SSD ()>3GB/s disk speed).  
 
 Resources
 =====

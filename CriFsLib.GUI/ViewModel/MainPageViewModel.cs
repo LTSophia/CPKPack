@@ -39,6 +39,17 @@ public class MainPageViewModel : ObservableObject
         await ExtractItemsAsync(folderPath, SelectedItems.Cast<CpkFileModel>().ToArray());
     }
 
+    internal async Task ExtractAllAsync(string folderPath)
+    {
+        await ExtractItemsAsync(folderPath, Files.ToArray()); // clone as we sort the array.
+        ArrayRental.Reset(); // Don't keep around in memory in case user leaves application idle.
+
+        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.AddMemoryPressure(nint.MaxValue);
+        GC.Collect(); // will clean up LOH
+        GC.RemoveMemoryPressure(nint.MaxValue);
+    }
+
     internal async Task ExtractAllAsync()
     {
         if (!TryGetOutputFolder(out var folderPath))
